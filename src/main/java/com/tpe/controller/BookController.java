@@ -2,6 +2,7 @@ package com.tpe.controller;
 
 import com.tpe.domain.Book;
 import com.tpe.dto.BookDTO;
+import com.tpe.dto.OwnerDto;
 import com.tpe.exception.BookNotFoundException;
 import com.tpe.service.BookService;
 import lombok.RequiredArgsConstructor;
@@ -9,12 +10,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController // @Controller ve @RestController arasindaki fark @RestController burada rest mimarisine gore gelenleri karsilar. -- @Controller dinamik bir uyguma isteklerini karsilayacagim
@@ -45,7 +48,9 @@ public class BookController {
 
     //2-a Get All Books
     // http://localhost:8080/books + GET
+
     //todo:ilerleyen derste return : List<BookDTO>
+
     @GetMapping
     public ResponseEntity<List<Book>> getAllBooks() {
         List<Book> books = bookService.findAllBooks();
@@ -91,8 +96,15 @@ public class BookController {
     }
 
     //ÖDEV:--> Get Books By Its Author and PublicationDate
-    //--> http://localhost:8080/books/filter?author=Martin Eden&pubDate=1900
+    //--> http://localhost:8080/books/filter?author=Martin Eden&publicationDate=1900 +GET
     ////findByAuthorAndPublicationDate(author,pubDate)
+    @GetMapping("/filters")
+    public ResponseEntity<List<Book>> getFilterByAuthotAndPublicationDate(@RequestParam(name = "author") String author,
+                                                                          @RequestParam(name = "publicationDate") String pubDate){
+        List<Book> bookList = bookService.filterBooksByAuthorAndPubDate(author,pubDate);
+        return ResponseEntity.ok(bookList);
+    }
+
 
     //7- Get Books With Page
     // http://localhost:8080/books/s?page=1&
@@ -105,6 +117,15 @@ public class BookController {
                                                      @RequestParam("sort") String sortBy,
                                                      @RequestParam("direction") Sort.Direction direction){
         Pageable pageable = PageRequest.of(page, size, Sort.by(direction,sortBy));
+        Page<Book> bookPage = bookService.getBookByPage(pageable);
+
+        return ResponseEntity.ok(bookPage);
+
+    }
+    //----ikinci yol
+    @GetMapping("/deneme")
+    public ResponseEntity<Page<Book>> getBooksByPage(@PageableDefault(page = 0, size = 10, sort = "publicationDate", direction = Sort.Direction.ASC) Pageable pageable ){
+
         Page<Book> bookPage = bookService.getBookByPage(pageable);
 
         return ResponseEntity.ok(bookPage);
@@ -128,11 +149,35 @@ public class BookController {
     }
 
     //10- Add a Book to an Owner
-    // http://localhost:8080/books/add?book=3&owner=1
+    // http://localhost:8080/books/add?book=3&owner=1 + PATCh
+    @PatchMapping("/add")
+    public ResponseEntity<String> addBookToOwner(@RequestParam("book") Long booId,
+                                                    @RequestParam("owner") Long ownerId){
+        bookService.addBookToOwner(booId,ownerId);
 
-    //todo:exception handler nasil yapilir
-    //todo: id'si verilen kitabin hangi uyede oldugunu nasil goruruz
+        return ResponseEntity.ok("Kitap belirtilen Uyeye Eklendi"); //200
 
+    }
+
+    //2-a- Get All Books as DTO
+    // http://localhost:8080/books/dto + GET
+    @GetMapping("/dto")
+    public ResponseEntity<List<BookDTO>> getAllAsDto(){
+
+        List<BookDTO> allBooks =bookService.getAllAsDto();
+        return ResponseEntity.ok(allBooks);
+
+    }
+
+
+    //id'si verilen kitabin hangi uyede oldugunu nasil goruruz
+    //http://localhost:8080/books/show/owner/2 + GET
+    @GetMapping("/show/owner/{id}")
+    public ResponseEntity<OwnerDto> showOwner(@PathVariable("id") Long bookId){
+       OwnerDto ownerDto = bookService.showOwner(bookId);
+
+       return ResponseEntity.ok(ownerDto);
+    }
 
 
 
